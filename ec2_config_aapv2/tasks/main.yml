@@ -1,0 +1,57 @@
+---
+# tasks file for ec2_config_aapv2
+- name: configure RHEL8 instances for AAPv2 install
+  hosts: all
+  become: yes
+  become_method: sudo
+
+  tasks:
+  - name: set working max user namespace
+    ansible.builtin.shell: "sysctl -w user.max_user_namespace 63556"
+
+# TODO make sure to update your file name here
+  - name: make user max namespace persistent
+    ansible.builtin.lineinfile:
+      path: /ect/sysctl.d/your_file.conf
+      regexp: '^user.max_user_namesapces='
+      line: user.max_user_namesapces=63556
+  
+  - name: reload settings
+    ansible.builtin.shell: "redracut -f -v"
+
+# TODO comment or remove this if not clustering Automation Hub
+- name: Configuring Automation Hub for clustering
+  hosts: automationhub
+  become: yes
+  become_method: sudo
+
+  tasks:
+
+  - name: install nfs
+    ansible.builtin.yum: nfs-utils.x86_64
+
+  - name: create pulp directory
+    ansible.builtin.file:
+      path: /var/lib/pulp
+      state: directory
+    
+  # TODO Update with your NFS mount points  
+  - name: Set up NFS mounts
+    ansible.builtin.blockinfile:
+      dest: /ect/fstab
+      state: present
+      insertafter: EOF
+      block: | 
+        "srv_rhel8:/data /var/lib/pulp nfs defaults,_netdev,nosharecache 0 0"
+        "srv_rhel8:/data/pulpcore_static /var/lib/pulp/pulpcore_static nfs defaults,_netdev,nosharecache,context="system_u:object_r:httpd_sys_content_rw_t:s0" 0 0"
+
+  - name: mount pulp
+    ansible.builtin.shell: mount /var/lib/pulp
+
+  - name: create pulpcore_static directory
+    ansible.builtin.file:
+      path: /var/lib/pulp/pulpcore_static
+      state: directory
+
+  - name: mount pulpcore_static
+    ansible.builtin.shell: mount -a
