@@ -7,17 +7,17 @@
 
   tasks:
   - name: set working max user namespace
-    ansible.builtin.shell: "sysctl -w user.max_user_namespace 63556"
+    ansible.builtin.shell: "sysctl -w user.max_user_namespace=63556"
 
 # TODO make sure to update your file name here
   - name: make user max namespace persistent
     ansible.builtin.lineinfile:
       path: /ect/sysctl.d/your_file.conf
       regexp: '^user.max_user_namesapces='
-      line: user.max_user_namesapces=63556
+      line: user.max_user_namesapces = 63556
   
   - name: reload settings
-    ansible.builtin.shell: "redracut -f -v"
+    ansible.builtin.shell: "dracut -f -v"
 
 # TODO comment or remove this if not clustering Automation Hub
 - name: Configuring Automation Hub for clustering
